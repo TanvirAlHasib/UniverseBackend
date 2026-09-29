@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Study Room Chat Test</title>
+  <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+  <style>
+    body { font-family: Arial; padding: 20px; max-width: 700px; }
+    input, button { padding: 8px; margin: 4px 0; }
+    #messages { border: 1px solid #ccc; height: 300px; overflow-y: auto; padding: 10px; margin-top: 10px; }
+    .msg { padding: 6px; border-bottom: 1px solid #eee; }
+    .sender { color: #0066cc; font-weight: bold; }
+    .time { color: #999; font-size: 12px; }
+    #status { font-weight: bold; }
+  </style>
+</head>
+<body>
+<h2>Study Room Chat</h2>
+
+<div>
+  <input id="token" placeholder="Paste JWT here" style="width: 500px;" />
+  <input id="roomId" placeholder="Room ID" value="1" style="width: 80px;" />
+  <button onclick="connect()">Connect</button>
+</div>
+
+<p>Status: <span id="status">Disconnected</span></p>
+
+<div id="messages"></div>
+
+<div>
+  <input id="messageInput" placeholder="Type a message..." style="width: 500px;" />
+  <button onclick="sendMessage()">Send</button>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+<script>
+  let stompClient = null;
+  let roomId = null;
+
+  function connect() {
+      const token = document.getElementById('token').value.trim();
+      roomId = document.getElementById('roomId').value.trim();
+
+      if (!token) { alert('Paste your JWT token first'); return; }
+
+      // 👈 CHANGED: Use native WebSocket instead of SockJS
+      const socket = new WebSocket('ws://localhost:8080/ws');
+      stompClient = Stomp.over(socket);
+      stompClient.debug = null; // Hides STOMP console spam
+
+      stompClient.connect(
+          { Authorization: 'Bearer ' + token },
+          function () {
+              document.getElementById('status').innerText = 'Connected ✅';
+              document.getElementById('status').style.color = 'green';
+
+              stompClient.subscribe('/topic/room/' + roomId, function (msg) {
+                  const data = JSON.parse(msg.body);
+                  addMessage(data);
+              });
+          },
+          function (err) {
+              document.getElementById('status').innerText = 'Error ❌ ' + err;
+              document.getElementById('status').style.color = 'red';
+          }
+      );
+  }
+
+  function sendMessage() {
+      if (!stompClient || !stompClient.connected) { alert('Not connected'); return; }
+      const content = document.getElementById('messageInput').value;
+      if (!content) return;
+
+      stompClient.send('/app/chat.send', {}, JSON.stringify({
+          roomId: parseInt(roomId),
+          content: content
+      }));
+      document.getElementById('messageInput').value = '';
+  }
+
+  function addMessage(data) {
+      const div = document.createElement('div');
+      div.className = 'msg';
+      div.innerHTML = `<span class="sender">${data.senderName}</span>
+                       <span class="time">${data.sentAt}</span><br>${data.content}`;
+      document.getElementById('messages').appendChild(div);
+      document.getElementById('messages').scrollTop = 99999;
+  }
+</script>
+</body>
+</html>
