@@ -28,9 +28,14 @@ public record HousingListingResponse(
         String postedByName,
         String postedByEmail,
         LocalDateTime createdAt,
-        boolean ownedByMe
+        boolean ownedByMe,
+        long commentCount
 ) {
     public static HousingListingResponse fromEntity(HousingListing listing, Long currentUserId) {
+        return fromEntity(listing, currentUserId, listing.getComments() != null ? listing.getComments().size() : 0);
+    }
+
+    public static HousingListingResponse fromEntity(HousingListing listing, Long currentUserId, long commentCount) {
         boolean owned = currentUserId != null && listing.getPostedBy().getId().equals(currentUserId);
         return new HousingListingResponse(
                 listing.getId(),
@@ -51,7 +56,8 @@ public record HousingListingResponse(
                 listing.getPostedBy().getFirstName() + " " + listing.getPostedBy().getLastName(),
                 listing.getPostedBy().getEmail(),
                 listing.getCreatedAt(),
-                owned
+                owned,
+                commentCount
         );
     }
 }

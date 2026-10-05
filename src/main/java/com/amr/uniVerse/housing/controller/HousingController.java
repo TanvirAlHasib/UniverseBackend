@@ -67,4 +67,31 @@ public class HousingController {
         housingService.deleteListing(id, currentUser);
         return ResponseEntity.noContent().build();
     }
+
+    // ---------- COMMENTS ----------
+
+    @PostMapping("/{id}/comments")
+    public ResponseEntity<com.amr.uniVerse.housing.dto.HousingCommentResponse> addComment(
+            @PathVariable Long id,
+            @Valid @RequestBody com.amr.uniVerse.housing.dto.CreateHousingCommentRequest request,
+            @AuthenticationPrincipal User currentUser
+    ) {
+        return ResponseEntity.ok(housingService.addComment(id, request, currentUser));
+    }
+
+    @GetMapping("/{id}/comments")
+    public ResponseEntity<List<com.amr.uniVerse.housing.dto.HousingCommentResponse>> getComments(
+            @PathVariable Long id
+    ) {
+        return ResponseEntity.ok(housingService.getComments(id));
+    }
+
+    @DeleteMapping("/comments/{commentId}")
+    public ResponseEntity<Void> deleteComment(
+            @PathVariable Long commentId,
+            @AuthenticationPrincipal User currentUser
+    ) {
+        housingService.deleteComment(commentId, currentUser);
+        return ResponseEntity.noContent().build();
+    }
 }

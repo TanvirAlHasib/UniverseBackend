@@ -62,6 +62,10 @@ public class HousingListing {
     @JoinColumn(name = "posted_by", nullable = false)
     private User postedBy;
 
+    @OneToMany(mappedBy = "listing", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private java.util.List<HousingComment> comments = new java.util.ArrayList<>();
+
     @CreationTimestamp
     private LocalDateTime createdAt;
 

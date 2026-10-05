@@ -30,14 +30,18 @@ public class ListingController {
 
     @GetMapping
     public ResponseEntity<List<ListingResponse>> getAllListings(
-            @RequestParam(required = false) Category category
+            @RequestParam(required = false) Category category,
+            @AuthenticationPrincipal User currentUser
     ) {
-        return ResponseEntity.ok(listingService.getAllAvailableListings(category));
+        return ResponseEntity.ok(listingService.getAllAvailableListings(category, currentUser));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ListingResponse> getListingById(@PathVariable Long id) {
-        return ResponseEntity.ok(listingService.getListingById(id));
+    public ResponseEntity<ListingResponse> getListingById(
+            @PathVariable Long id,
+            @AuthenticationPrincipal User currentUser
+    ) {
+        return ResponseEntity.ok(listingService.getListingById(id, currentUser));
     }
 
     @PatchMapping("/{id}/sold")
@@ -54,6 +58,33 @@ public class ListingController {
             @AuthenticationPrincipal User currentUser
     ) {
         listingService.deleteListing(id, currentUser);
+        return ResponseEntity.noContent().build();
+    }
+
+    // ---------- COMMENTS ----------
+
+    @PostMapping("/{id}/comments")
+    public ResponseEntity<com.amr.uniVerse.marketplace.dto.MarketplaceCommentResponse> addComment(
+            @PathVariable Long id,
+            @Valid @RequestBody com.amr.uniVerse.marketplace.dto.CreateMarketplaceCommentRequest request,
+            @AuthenticationPrincipal User currentUser
+    ) {
+        return ResponseEntity.ok(listingService.addComment(id, request, currentUser));
+    }
+
+    @GetMapping("/{id}/comments")
+    public ResponseEntity<List<com.amr.uniVerse.marketplace.dto.MarketplaceCommentResponse>> getComments(
+            @PathVariable Long id
+    ) {
+        return ResponseEntity.ok(listingService.getComments(id));
+    }
+
+    @DeleteMapping("/comments/{commentId}")
+    public ResponseEntity<Void> deleteComment(
+            @PathVariable Long commentId,
+            @AuthenticationPrincipal User currentUser
+    ) {
+        listingService.deleteComment(commentId, currentUser);
         return ResponseEntity.noContent().build();
     }
 }

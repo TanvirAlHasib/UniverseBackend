@@ -18,6 +18,7 @@ import java.util.List;
 public class ListingService {
 
     private final ListingRepository listingRepository;
+    private final com.amr.uniVerse.marketplace.repository.ListingCommentRepository commentRepository;
 
     @Transactional
     public ListingResponse createListing(CreateListingRequest request, User currentUser) {
@@ -34,23 +35,27 @@ public class ListingService {
                 .build();
 
         Listing saved = listingRepository.save(listing);
-        return ListingResponse.fromEntity(saved);
+        return ListingResponse.fromEntity(saved, currentUser.getId(), 0);
     }
 
-    public List<ListingResponse> getAllAvailableListings(Category category) {
+    public List<ListingResponse> getAllAvailableListings(Category category, User currentUser) {
         List<Listing> listings;
         if (category != null) {
             listings = listingRepository.findByCategoryAndStatusOrderByCreatedAtDesc(category, ListingStatus.AVAILABLE);
         } else {
             listings = listingRepository.findByStatusOrderByCreatedAtDesc(ListingStatus.AVAILABLE);
         }
-        return listings.stream().map(ListingResponse::fromEntity).toList();
+        Long currentUserId = currentUser != null ? currentUser.getId() : null;
+        return listings.stream()
+                .map(l -> ListingResponse.fromEntity(l, currentUserId, commentRepository.countByListingId(l.getId())))
+                .toList();
     }
 
-    public ListingResponse getListingById(Long id) {
+    public ListingResponse getListingById(Long id, User currentUser) {
         Listing listing = listingRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Listing not found"));
-        return ListingResponse.fromEntity(listing);
+        Long currentUserId = currentUser != null ? currentUser.getId() : null;
+        return ListingResponse.fromEntity(listing, currentUserId, commentRepository.countByListingId(id));
     }
 
     @Transactional
@@ -64,7 +69,7 @@ public class ListingService {
 
         listing.setStatus(ListingStatus.SOLD);
         Listing updated = listingRepository.save(listing);
-        return ListingResponse.fromEntity(updated);
+        return ListingResponse.fromEntity(updated, currentUser.getId(), commentRepository.countByListingId(id));
     }
 
     @Transactional
@@ -77,5 +82,48 @@ public class ListingService {
         }
 
         listingRepository.delete(listing);
+    }
+
+    // ---------- COMMENTS ----------
+
+    @Transactional
+    public com.amr.uniVerse.marketplace.dto.MarketplaceCommentResponse addComment(
+            Long listingId,
+            com.amr.uniVerse.marketplace.dto.CreateMarketplaceCommentRequest request,
+            User currentUser
+    ) {
+        Listing listing = listingRepository.findById(listingId)
+                .orElseThrow(() -> new RuntimeException("Listing not found"));
+
+        com.amr.uniVerse.marketplace.entity.ListingComment comment = com.amr.uniVerse.marketplace.entity.ListingComment.builder()
+                .content(request.content().trim())
+                .listing(listing)
+                .author(currentUser)
+                .build();
+
+        com.amr.uniVerse.marketplace.entity.ListingComment saved = commentRepository.save(comment);
+        return com.amr.uniVerse.marketplace.dto.MarketplaceCommentResponse.fromEntity(saved);
+    }
+
+    public List<com.amr.uniVerse.marketplace.dto.MarketplaceCommentResponse> getComments(Long listingId) {
+        return commentRepository.findByListingIdOrderByCreatedAtAsc(listingId)
+                .stream()
+                .map(com.amr.uniVerse.marketplace.dto.MarketplaceCommentResponse::fromEntity)
+                .toList();
+    }
+
+    @Transactional
+    public void deleteComment(Long commentId, User currentUser) {
+        com.amr.uniVerse.marketplace.entity.ListingComment comment = commentRepository.findById(commentId)
+                .orElseThrow(() -> new RuntimeException("Comment not found"));
+
+        boolean isAuthor = comment.getAuthor().getId().equals(currentUser.getId());
+        boolean isSeller = comment.getListing().getSeller().getId().equals(currentUser.getId());
+
+        if (!isAuthor && !isSeller) {
+            throw new RuntimeException("You are not authorized to delete this comment");
+        }
+
+        commentRepository.delete(comment);
     }
 }

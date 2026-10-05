@@ -47,6 +47,10 @@ public class Listing {
     @JoinColumn(name = "seller_id", nullable = false)
     private User seller;
 
+    @OneToMany(mappedBy = "listing", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private java.util.List<ListingComment> comments = new java.util.ArrayList<>();
+
     @CreationTimestamp
     private LocalDateTime createdAt;
 

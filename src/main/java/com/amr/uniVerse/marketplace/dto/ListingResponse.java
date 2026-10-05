@@ -17,11 +17,19 @@ public record ListingResponse(
         ListingStatus status,
         String location,
         String imageUrl,
+        Long sellerId,
         String sellerName,
         String sellerEmail,
-        LocalDateTime createdAt
+        LocalDateTime createdAt,
+        boolean isOwner,
+        long commentCount
 ) {
     public static ListingResponse fromEntity(Listing listing) {
+        return fromEntity(listing, null, listing.getComments() != null ? listing.getComments().size() : 0);
+    }
+
+    public static ListingResponse fromEntity(Listing listing, Long currentUserId, long commentCount) {
+        boolean owned = currentUserId != null && listing.getSeller().getId().equals(currentUserId);
         return new ListingResponse(
                 listing.getId(),
                 listing.getTitle(),
@@ -32,9 +40,12 @@ public record ListingResponse(
                 listing.getStatus(),
                 listing.getLocation(),
                 listing.getImageUrl(),
+                listing.getSeller().getId(),
                 listing.getSeller().getFirstName() + " " + listing.getSeller().getLastName(),
                 listing.getSeller().getEmail(),
-                listing.getCreatedAt()
+                listing.getCreatedAt(),
+                owned,
+                commentCount
         );
     }
 }
