@@ -156,14 +156,15 @@ public class StudyRoomService {
         studyRoomRepository.delete(room);
     }
 
-    // Helper method to map the entity to a DTO
     private StudyRoomResponse mapToResponse(StudyRoom room, User currentUser) {
         long approvedCount = membershipRepository.countByRoomIdAndStatus(room.getId(), MembershipStatus.APPROVED);
 
         boolean isMember = false;
         MembershipStatus status = null;
+        boolean isCreator = false;
 
         if (currentUser != null) {
+            isCreator = room.getCreator().getId().equals(currentUser.getId());
             var membershipOpt = membershipRepository.findByRoomIdAndUserId(room.getId(), currentUser.getId());
             if (membershipOpt.isPresent()) {
                 status = membershipOpt.get().getStatus();
@@ -178,9 +179,11 @@ public class StudyRoomService {
                 room.getCategory(),
                 room.getMaxMembers(),
                 approvedCount,
+                room.getCreator().getId(),
                 room.getCreator().getFirstName() + " " + room.getCreator().getLastName(),
                 room.getCreatedAt(),
                 isMember,
+                isCreator,
                 status
         );
     }

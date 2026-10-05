@@ -12,8 +12,10 @@ public record StudyRoomResponse(
         RoomCategory category,
         Integer maxMembers,
         long currentMembers,
+        Long creatorId,
         String creatorName,
         LocalDateTime createdAt,
         boolean isMember,
+        boolean isCreator,
         MembershipStatus membershipStatus
 ) {}
